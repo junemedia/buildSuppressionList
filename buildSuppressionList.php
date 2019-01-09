@@ -1,85 +1,68 @@
 #!/usr/bin/php
 
 <?php
-
 // gotta up the default memory allotment
 ini_set('memory_limit', '3072M');
 
+
+// input data, this should all be provided via user input...
 $jm_contacts     = 'data/jm_contacts.csv';
 $client_contacts = 'data/client_contacts.csv';
-$client_domains  = 'data/client_domains.csv';
-$output_file     = 'output/suppression_list.csv';
+$client_domains  =  null;
+
+$client = prompt('Name of client');
+$output_file = 'output/'.date('Ymd')."_{$client}_Supp_File.csv";
 
 
+// build haystack
+$haystack = array();
+if (isset($client_contacts) && $client_contacts) {
+  echo "processing client contacts...\n";
+  $haystack['contacts'] = buildHaystack($client_contacts);
+}
+if (isset($client_domains) && $client_domains) {
+  echo "processing client domains...\n";
+  $haystack['domains']  = buildHaystack($client_domains);
+}
 
-$haystack = buildHaystack($client_contacts, $client_domains);
+
+// create our suppression list
 $suppressions = buildSuppressionList($jm_contacts, $haystack);
 outPutFile($suppressions, $output_file);
 
+
 // do some reporting...
 echo "\n";
-echo 'client is suppressing '.count($haystack['contacts'])." contacts\n";
-echo 'client is suppressing '.count($haystack['domains'])." domains\n";
-echo 'suppression list has '.count($suppressions)." hashes\n\n";
-
-echo "memory used: ".number_format(memory_get_peak_usage())."\n\n";
-
-
-function buildHaystack($contacts_file = NULL, $domains_file = NULL) {
-  $contacts = array();
-  $domains = array();
+echo 'client is suppressing '.number_format(count($haystack['contacts']))." contacts\n";
+echo 'client is suppressing '.number_format(count($haystack['domains']))." domains\n";
+echo 'suppression list has '. number_format(count($suppressions))." hashes\n\n";
+echo "memory used: ".memory_get_peak_usage()." bytes\n\n";
 
 
-  if ($contacts_file !== NULL) {
-    if (file_exists($contacts_file) &&
-        $fh = fopen($contacts_file, 'r')) {
-      echo 'processing client contacts...';
-      $i = 0;
-      while (($hash = fgets($fh)) !== false) {
-        $hash = rtrim($hash);
-        $contacts[$hash] = true;
-        $i++;
-      }
-      fclose($fh);
-      echo "$i contacts processed";
+/*
+ * *********************************************************************
+ *  Functions
+ * *********************************************************************
+ */
+function buildHaystack($client_file) {
+  $hay = array();
+
+  if (file_exists($client_file) &&
+      $fh = fopen($client_file, 'r')) {
+    $i = 0;
+    while (($value = fgets($fh)) !== false) {
+      $value = rtrim($value);
+      $hay[$value] = true;
+      $i++;
     }
-    else {
-      echo 'ERROR: unable to open client contacts file!!';
-    }
+    fclose($fh);
   }
   else {
-    echo 'no client contacts to process';
+    echo "ERROR: unable to open client contacts file!!\n";
   }
-  echo "\n";
 
-  if ($domains_file !== NULL) {
-    if (file_exists($domains_file) &&
-        $fh = fopen($domains_file, 'r')) {
-      echo 'processing client domains...';
-      $i = 0;
-      while (($domain = fgets($fh)) !== false) {
-        $domain = rtrim($domain);
-        $domains[$domain] = true;
-        $i++;
-      }
-      fclose($fh);
-      echo "$i domains processed";
-    }
-    else {
-      echo 'ERROR: unable to open client contacts file!!';
-    }
-  }
-  else {
-    echo 'no client domains to process';
-  }
-  echo "\n";
-
-  return array(
-    'contacts' => $contacts,
-    'domains' => $domains
-  );
+  return $hay;
 }
-
 
 function buildSuppressionList($needles, $haystack) {
   $hashes = array();
@@ -91,18 +74,22 @@ function buildSuppressionList($needles, $haystack) {
 
       $domain = explode('@', $email)[1];
 
-
       if (isset($haystack['contacts'][$hash]) ||
           isset($haystack['domains'][$domain])) {
         $hashes[] = $hash;
       }
-
     }
   }
-
   return $hashes;
 }
 
+function prompt($msg) {
+  $fh = fopen('php://stdin', 'r');
+  echo "$msg: ";
+  $reply = trim(fgets($fh));
+  fclose($fh);
+  return $reply;
+}
 
 function outputFile($suppressions, $target) {
   // header row
