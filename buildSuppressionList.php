@@ -5,10 +5,11 @@
 // gotta up the default memory allotment
 ini_set('memory_limit', '3072M');
 
-$jm_contacts = 'data/jm_contacts.csv';
+$jm_contacts     = 'data/jm_contacts.csv';
 $client_contacts = 'data/client_contacts.csv';
-$client_domains = 'data/client_domains.csv';
-$output_file = 'output/suppression_list.csv';
+$client_domains  = 'data/client_domains.csv';
+$output_file     = 'output/suppression_list.csv';
+
 
 
 $haystack = buildHaystack($client_contacts, $client_domains);
@@ -16,6 +17,7 @@ $suppressions = buildSuppressionList($jm_contacts, $haystack);
 outPutFile($suppressions, $output_file);
 
 // do some reporting...
+echo "\n";
 echo 'client is suppressing '.count($haystack['contacts'])." contacts\n";
 echo 'client is suppressing '.count($haystack['domains'])." domains\n";
 echo 'suppression list has '.count($suppressions)." hashes\n\n";
@@ -23,26 +25,54 @@ echo 'suppression list has '.count($suppressions)." hashes\n\n";
 echo "memory used: ".number_format(memory_get_peak_usage())."\n\n";
 
 
-function buildHaystack($contacts_file, $domains_file) {
+function buildHaystack($contacts_file = NULL, $domains_file = NULL) {
   $contacts = array();
   $domains = array();
 
 
-  if ($fh = fopen($contacts_file, 'r')) {
-    while (($hash = fgets($fh)) !== false) {
-      $hash = rtrim($hash);
-      $contacts[$hash] = true;
+  if ($contacts_file !== NULL) {
+    if (file_exists($contacts_file) &&
+        $fh = fopen($contacts_file, 'r')) {
+      echo 'processing client contacts...';
+      $i = 0;
+      while (($hash = fgets($fh)) !== false) {
+        $hash = rtrim($hash);
+        $contacts[$hash] = true;
+        $i++;
+      }
+      fclose($fh);
+      echo "$i contacts processed";
     }
-    fclose($fh);
-  };
+    else {
+      echo 'ERROR: unable to open client contacts file!!';
+    }
+  }
+  else {
+    echo 'no client contacts to process';
+  }
+  echo "\n";
 
-  if ($fh = fopen($domains_file, 'r')) {
-    while (($domain = fgets($fh)) !== false) {
-      $domain = rtrim($domain);
-      $domains[$domain] = true;
+  if ($domains_file !== NULL) {
+    if (file_exists($domains_file) &&
+        $fh = fopen($domains_file, 'r')) {
+      echo 'processing client domains...';
+      $i = 0;
+      while (($domain = fgets($fh)) !== false) {
+        $domain = rtrim($domain);
+        $domains[$domain] = true;
+        $i++;
+      }
+      fclose($fh);
+      echo "$i domains processed";
     }
-    fclose($fh);
-  };
+    else {
+      echo 'ERROR: unable to open client contacts file!!';
+    }
+  }
+  else {
+    echo 'no client domains to process';
+  }
+  echo "\n";
 
   return array(
     'contacts' => $contacts,
