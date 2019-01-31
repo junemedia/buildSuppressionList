@@ -8,7 +8,7 @@ ini_set('memory_limit', '3072M');
 // input data, this should all be provided via user input...
 $jm_contacts     = 'data/jm_contacts.csv';
 $client_contacts = 'data/client_contacts.csv';
-$client_domains  =  null;
+$client_domains  =  'data/client_domains.csv';
 
 $client = prompt('Name of client');
 $output_file = 'output/'.date('Ymd')."_{$client}_Supp_File.csv";
