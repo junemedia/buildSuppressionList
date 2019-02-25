@@ -51,7 +51,7 @@ function buildHaystack($client_file) {
       $fh = fopen($client_file, 'r')) {
     $i = 0;
     while (($value = fgets($fh)) !== false) {
-      $value = rtrim($value);
+      $value = strtolower(rtrim($value));
       $hay[$value] = true;
       $i++;
     }
